@@ -1,0 +1,12 @@
+all: 
+  hosts: 
+    some-host: 
+      ansible_host: 
+      ansible_user: 
+  vars: 
+    users: 
+      - name: volker
+        group: sudo
+        sudoer: yes
+        password: 
+        auth_key: ssh-rsa ???

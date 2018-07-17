@@ -1,0 +1,52 @@
+- hosts: vm
+
+  tasks:
+
+    - name: Install python-apt
+      shell: apt-get install python-apt warn=no
+      become: yes
+
+    - name: Check for Docker installation
+      package:
+        name: docker-ce
+        state: present
+      check_mode: yes
+      register: docker_installed
+
+    - name: Install Docker
+      block:
+        - name: Update apt package index
+          shell: apt-get update
+
+        - name: Install Docker's prerequisites
+          shell: apt-get install apt-transport-https ca-certificates curl software-properties-common
+  
+        - name: Add Docker's official GPG key
+          shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  
+        - name: Add Dockers's repository
+          shell: 'add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
+  
+        - name: Update apt package index
+          shell: apt-get update
+  
+        - name: Install the latest version of Docker CE
+          shell: apt-get install docker-ce
+      when: docker_installed.changed 
+      become: yes
+      
+    - name: Configure Docker rights
+      block:
+        - name: Create docker group
+          group: 
+            name: docker
+            state: present
+
+        - name: Add all users to docker group
+          user: 
+            name: "{{ item.name }}"
+            groups: docker
+            append: yes
+            state: present
+          loop: "{{ users|flatten(levels=1) }}"
+      become: yes

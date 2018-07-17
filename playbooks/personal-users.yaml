@@ -1,0 +1,36 @@
+- hosts: vm
+
+  tasks:
+    - name: Add users
+      user:
+        name: "{{ item.name }}"
+        system: "{{ item.sudoer }}"
+        shell: /bin/bash
+        append: yes
+        groups: "{{ item.group }}"
+        # this is just a default password, I think it's SHA512 for "changeme"
+        password: "{{ item.password | default('$6$rounds=656000$iO7Q9L6/w8dUUQVf$rmtnxrQ15TGAfG5ODxQ/WGyEpTwk.vD1W.UtedmOlo9YNkrIwapYMjmKmteEnUJmRYucgUVxXUQy7gtenpLmw0') }}"
+        update_password: on_create
+        state: present
+      loop: "{{ users|flatten(levels=1) }}"
+    
+    - name: Add .ssh directories
+      file:
+        path: "/home/{{ item.name }}/.ssh"
+        state: directory
+        mode: 0700
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+      loop: "{{ users|flatten(levels=1) }}"
+    
+    - name: Create .ssh/authorized_keys
+      file:
+        path: "/home/{{ item.name }}/.ssh/authorized_keys"
+        state: touch
+      loop: "{{ users|flatten(levels=1) }}"
+
+    - name: Put pubkey into .ssh/authorized_keys
+      lineinfile:
+        path: "/home/{{ item.name }}/.ssh/authorized_keys"
+        line: "{{ item.auth_key }}"
+      loop: "{{ users|flatten(levels=1) }}" 
